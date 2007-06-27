@@ -150,7 +150,7 @@ while [ $# -gt 0 ]; do
 	exit 0;;
 
     *)	if [ "$LOCAL_AC_OPTIONS" ]; then
-	    eval $LOCAL_AC_OPTIONS
+	    eval "$LOCAL_AC_OPTIONS"
 	else
 	    ac_error=T
 	fi
@@ -224,16 +224,17 @@ main()
 }
 EOF
 
-    LOGN "checking for header $1"
+    test "$_sssh" || LOGN "checking for header $1"
 
     if $AC_CC -o /tmp/ngc$$ /tmp/ngc$$.c; then
 	AC_DEFINE 'HAVE_'`echo $1 | tr 'a-z' 'A-Z' | tr './' '_'` 1
-	TLOG " (found)"
+	test "$_sssh" || TLOG " (found)"
 	rc=0
     else
-	TLOG " (not found)"
+	test "$_sssh" || TLOG " (not found)"
 	rc=1
     fi
+    unset _sssh
     rm -f /tmp/ngc$$.c /tmp/ngc$$
     return $rc
 }
@@ -252,20 +253,21 @@ main()
 }
 EOF
 
-    LOGN "checking for the $1 function"
+    test "$_sssh" || LOGN "checking for the $1 function"
 
     if $AC_CC -o /tmp/ngc$$ /tmp/ngc$$.c $LIBS; then
 	AC_DEFINE `echo ${2:-HAVE_$1} | tr 'a-z' 'A-Z'` 1
-	TLOG " (found)"
+	test "$_sssh" || TLOG " (found)"
 	rc=0
     else
 	echo "offending command was:"
 	cat /tmp/ngc$$.c
 	echo "$AC_CC -o /tmp/ngc$$ /tmp/ngc$$.c $LIBS"
-	TLOG " (not found)"
+	test "$_sssh" || TLOG " (not found)"
 	rc=1
     fi
     rm -f /tmp/ngc$$.c /tmp/ngc$$
+    unset _sssh
     return $rc
 }
 
@@ -297,16 +299,17 @@ main()
 }
 EOF
 
-    LOGN "checking that struct $struct has a $field field"
+    test "$_sssh" || LOGN "checking that struct $struct has a $field field"
 
     if $AC_CC -o /tmp/ngc$$ /tmp/ngc$$.c $AC_LIBS 2>>config.log; then
 	AC_DEFINE HAVE_`echo ${struct}_$field | tr 'a-z' 'A-Z'`
-	TLOG " (yes)"
+	test "$_sssh" || TLOG " (yes)"
 	rc=0
     else
-	TLOG " (no)"
+	test "$_sssh" || TLOG " (no)"
 	rc=1
     fi
+    unset _sssh
     rm -f /tmp/ngc$$.c /tmp/ngc$$
     return $rc
 }
@@ -326,7 +329,7 @@ main()
 }
 EOF
 
-    TLOGN "Checking the C compiler"
+    TLOGN "checking the C compiler"
 
     AC_CC=${CC:-`acLookFor cc`}
 
@@ -334,7 +337,7 @@ EOF
 	TLOG " (no C compiler found)"
 	$__fail 1
     fi
-    echo "Checking out the C compiler"
+    echo "checking out the C compiler"
 
     $AC_CC -o /tmp/ngc$$ /tmp/ngc$$.c
     status=$?
@@ -510,6 +513,70 @@ EOF
     AC_PATH=${WITH_PATH:-$PATH}
     AC_PROG_CPP
     AC_PROG_INSTALL
+}
+
+
+#
+# AC_LIBRARY checks to see if a given library exists and contains the
+# given function.
+# usage: AC_LIBRARY function library [alternate ...]
+#
+AC_LIBRARY() {
+    SRC=$1
+    shift
+
+    # first see if the function can be found in any of the
+    # current libraries
+    _sssh=T
+    AC_CHECK_FUNCS $SRC && return 0
+
+    # then search through the list of libraries
+    __libs="$LIBS"
+    for x in $*; do
+	_sssh=T
+	LIBS="$__libs $x"
+	if AC_CHECK_FUNCS $SRC; then
+	    AC_LIBS="$AC_LIBS $x"
+	    return 0
+	fi
+    done
+    return 1
+}
+
+
+#
+# AC_PROG_LEX checks to see if LEX exists, and if it's lex or flex.
+#
+AC_PROG_LEX() {
+    TLOGN "looking for lex "
+
+    DEST=`acLookFor lex`
+    if [ "$DEST" ]; then
+	AC_MAK LEX
+	AC_DEFINE PATH_LEX \"$DEST\"
+	AC_SUB 'LEX' "$DEST"
+	echo "lex is $DEST"
+    else
+	DEST=`acLookFor flex`
+	if [ "$DEST" ]; then
+	    AC_MAK FLEX
+	    AC_DEFINE 'LEX' \"$DEST\"
+	    AC_SUB 'LEX', "$DEST"
+	    echo "lex is $DEST"
+	else
+	    AC_SUB LEX ''
+	    echo "neither lex or flex found"
+	    TLOG " (not found)"
+	    return 1
+	fi
+    fi
+
+    if AC_LIBRARY yywrap -ll -lfl; then
+	TLOG "($DEST)"
+	return 0
+    fi
+    TLOG "(no lex library found)"
+    return 1
 }
 
 
@@ -707,7 +774,7 @@ AC_PROG_INSTALL () {
 
     DEST=`acLookFor install`
 
-    LOGN "Checking for install"
+    LOGN "checking for install"
     unset IS_BSD
     if [ "$DEST" ]; then
 	# BSD install or GNU install?  Let's find out...
@@ -732,7 +799,11 @@ AC_PROG_INSTALL () {
 	fi
     fi
 
-    PROG_INSTALL="$DEST${IS_BSD:+" -c"}"
+    if [ "$IS_BSD" ]; then
+	PROG_INSTALL="$DEST -c"
+    else
+	PROG_INSTALL="$DEST"
+    fi
 
     AC_SUB 'INSTALL' "$PROG_INSTALL"
     AC_SUB 'INSTALL_PROGRAM' "$PROG_INSTALL -s -m 755"
@@ -772,7 +843,10 @@ AC_PROG_CPP () {
     if [ "$AC_CPP_PROG" ]; then
 	DEST=$AC_CPP_PROG
     else
-	DEST=`AC_PATH=/lib:/usr/lib:${AC_PATH:-$ac_default_path} acLookFor cpp`
+	__ac_path="$AC_PATH"
+	AC_PATH="/lib:/usr/lib:${__ac_path:-$ac_default_path}"
+	DEST=`acLookFor cpp`
+	AC_PATH="$__ac_path"
     fi
 
     unset fail
