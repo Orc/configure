@@ -1,6 +1,6 @@
 #! /bin/sh
 #
-# %A%: concatenate configure.sh and configure.inc into configure.sh
+# %Z% %M% %E%: concatenate configure.sh and configure.inc into configure.sh
 #
 
 for req in configure.sh configure.inc; do
@@ -12,17 +12,11 @@ done
 
 trap "rm -f $$;exit 0" 1 2 3 9 15
 
-while IFS= read line;do
-    case "$line" in
-    ". "[^ ]*"/configure.inc"*) echo "# #### configure.inc ####"
-				grep -v '^#' configure.inc
-				echo "# #### configure.sh ####"
-				;;
-    *)                          echo "$line"
-				;;
-    esac
-done < configure.sh > $$
-
+awk ' /^\. +([^ ]*\/)?configure.inc/ {  print "# #### configure.inc ####";
+					system("cat configure.inc");
+					print "# #### configure.sh #####";
+					next; }
+				      { print; }' < configure.sh > $$
 if test -s $$; then
     # blow away all the old configure files plus joincfg
     rm -f configure.inc configure.sh joincfg.sh
