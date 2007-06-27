@@ -1,3 +1,49 @@
+Using configure.inc in a configuration shellscript
+
+1) set up local option handling and --help
+
+|ac_help='--option1	what option1 is
+|--option2	what option2 is'
+|
+|LOCAL_AC_OPTIONS=`
+|case X"$1" in
+|X--option1) option1=T; shift 1;;
+|X--option2) option2=T; shift 2;;
+|*) ac_error=1;;
+|esac'
+
+2) include configure.inc (loads all functions, parses command options)
+
+| . ./configure.inc
+
+3) call AC_INIT to start configuring.  After this point, all output goes
+   to config.log unless you redirect it to file descriptor 5.
+
+| AC_INIT HOWTO
+
+3) do whatever configuration you might want to do (look in the samples
+   directory)
+
+4) when you're done, call AC_OUTPUT to finalize all the changes written
+   into config.* files, then process .in files
+
+| AC_OUTPUT Makefile.in subdir/Makefile.in
+
+5) you're done, and the caller should now be able to run make
+
+
+Environment variables configure.inc uses
+
+CC="c compiler"
+CFLAGS="options for compiling code"
+LDFLAGS="options for linking code"
+AC_LIBS="libraries that are needed to build"
+
+
+
+Commands available from configure.inc
+
+
 LOG		write a message to the terminal and th logfile
 LOGN		write a message to the terminal without a newline at the end,
 		but to the logfile with a newline at the end.
@@ -28,7 +74,7 @@ AC_PROG_CC	finds the C compiler and checks to see if it works
 		in config.sub
 
 acLookFor	quietly looks for a program
-		Internal program, returns "" or the pathname of the program.
+		Returns "" or the pathname of the program.
 
 MF_PATH_INCLUDE	<file> <candidate0 ... candidateN>
 		checks for a file in a list of candidates.
@@ -64,18 +110,24 @@ AC_PROG_FIND	looks for find
 AC_PROG_SET	looks for sed
                 Otherwise like MF_PATH_INCLUDE
 
-AC_HEADER_SYS_WAIT	looks for sys/wait.h ( AC_CHECK_HEADERS sys/wait.h )
+AC_HEADER_SYS_WAIT
+		looks for sys/wait.h ( AC_CHECK_HEADERS sys/wait.h )
 
 AC_TYPE_PID_T	looks to see if the pid_t type exists.
 
 AC_C_CONST	checks that the ``const'' keyword exists
+
 AC_OUTPUT	finishes configure, processes .in files
+
 AC_PROG_INSTALL	find the install program, determine whether it's gnu
 		install or BSD install
+
 AC_PROG_CPP	looks for cpp.
+
 AC_FAIL		spits out an error message to the log, then either
 		exits or continues (depending on if AC_CONTINUE was
                 previously called)
+
 AC_SUB		writes a substitution into config.sub
 AC_MAK		writes a Makefile define into config.mak
 AC_DEFINE	writes a #define into config.h

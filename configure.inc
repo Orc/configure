@@ -43,6 +43,7 @@ ac_standard="--src=DIR		where the source lives (.)
 
 __fail=exit
 
+ac_progname=$0
 ac_configure_command="$*"
 
 while [ $# -gt 0 ]; do
@@ -162,6 +163,14 @@ done
 
 
 #
+# echo w/o newline
+#
+echononl()
+{
+    ${ac_echo:-echo} "${@}$ac_echo_nonl"
+}
+
+#
 # log something to the terminal and to a logfile.
 #
 LOG () {
@@ -174,7 +183,7 @@ LOG () {
 # a newline
 #
 LOGN () {
-    $ac_echo "${@}$ac_echo_nonl" 1>&5
+    echononl "$@" 1>&5
     echo "$@"
 }
 
@@ -189,7 +198,7 @@ TLOG () {
 # log something to the terminal, no newline
 #
 TLOGN () {
-    $ac_echo "${@}$ac_echo_nonl" 1>&5
+    echononl "$@" 1>&5
 }
 
 
@@ -672,7 +681,7 @@ AC_OUTPUT () {
 	rm -f config.cmd
 	cat - > config.cmd << EOF
 #! /bin/sh
-${CC:+CC=\"$CC\"} ${CFLAGS:+CFLAGS=\"$CFLAGS\"} $0 $ac_configure_command
+${CC:+CC=\"$CC\"} ${CFLAGS:+CFLAGS=\"$CFLAGS\"} $ac_progname $ac_configure_command
 EOF
 	chmod +x config.cmd
 
@@ -796,8 +805,9 @@ AC_FAIL() {
 #
 # AC_SUB writes a substitution into config.sub
 AC_SUB() {
-    (   $ac_echo "s;@$1@;$ac_echo_nonl"
-	$ac_echo "$2$ac_echo_nonl" | sed -e 's/;/\\;/g'
+    (   echononl "s;@$1@;"
+	_subst=`echo $2 | sed -e 's/;/\\;/g'`
+	echononl "$_subst"
 	echo ';g' ) >> $__cwd/config.sub
 }
 
