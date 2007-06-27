@@ -761,15 +761,19 @@ ${CC:+CC=${Q}${CC}${Q}} ${CFLAGS:+CFLAGS=${Q}${CFLAGS}${Q}} $ac_progname $ac_con
 EOF
 	chmod +x config.cmd
 
+	__d=$AC_SRCDIR
 	for makefile in $*;do
-	    if test -r ${makefile}.in; then
+	    if test -r $__d/${makefile}.in; then
 		LOG "generating $makefile"
-		$AC_SED_PROG -f config.sub < ${makefile}.in > $makefile
+		mkdir -p `dirname $makefile` 2>/dev/null
+		$AC_SED_PROG -f config.sub < $__d/${makefile}.in > $makefile
 		__generated_files="$__generated_files $makefile"
 	    else
 		LOG "WARNING: ${makefile}.in does not exist!"
 	    fi
 	done
+	unset __d
+
     else
 	echo 
     fi

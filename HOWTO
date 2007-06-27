@@ -16,6 +16,11 @@ Using configure.inc in a configuration shellscript
 
 | . ./configure.inc
 
+   The script joincfg.sh can be used to merge configure.inc into
+   configure.sh (deleting configure.inc in the process) so you
+   can ship a tarball that will work with configure.sh --srcdir.
+
+
 3) call AC_INIT to start configuring.  After this point, all output goes
    to config.log unless you redirect it to file descriptor 5.
 
