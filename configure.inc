@@ -63,56 +63,82 @@ else
     AC_SRCDIR=`cd $__d;pwd`
 fi
 
+__ac_dir() {
+    if test -d "$1"; then
+	(cd "$1";pwd)
+    else
+	echo "$1";
+    fi
+}
+
 while [ $# -gt 0 ]; do
     unset matched
 
     case X"$1" in
     X--src|X--srcdir)
-	AC_SRCDIR=$2
+	AC_SRCDIR=`__ac_dir "$2"`
+	_set_srcdir=1
 	shift 2;;
 
     X--src=*|X--srcdir=*)
-	AC_SRCDIR=`echo "$1" | sed -e 's/^[^=]*=//'`
+	__d=`echo "$1" | sed -e 's/^[^=]*=//'`
+	AC_SRCDIR=`__ac_dir "$__d"`
+	_set_srcdir=1
 	shift 1 ;;
 
     X--prefix)
-	AC_PREFIX=$2
+	AC_PREFIX=`__ac_dir "$2"`
+	_set_prefix=1
 	shift 2;;
 
     X--prefix=*)
-	AC_PREFIX=`echo "$1"| sed -e 's/^[^=]*=//'`
+	__d=`echo "$1"| sed -e 's/^[^=]*=//'`
+	AC_PREFIX=`__ac_dir "$__d"`
+	_set_prefix=1
 	shift 1;;
 
     X--confdir)
-	AC_CONFDIR=$2
+	AC_CONFDIR=`__ac_dir "$2"`
+	_set_confdir=1
 	shift 2;;
 
     X--confdir=*)
-	AC_CONFDIR=`echo "$1" | sed -e 's/^[^=]*=//'`
+	__d=`echo "$1" | sed -e 's/^[^=]*=//'`
+	AC_CONFDIR=`__ac_dir "$__d"`
+	_set_confdir=1
 	shift 1;;
 
     X--lib|X--libdir)
-	AC_LIBDIR=$2
+	AC_LIBDIR=`__ac_dir "$2"`
+	_set_libdir=1
 	shift 2;;
 
     X--lib=*|X--libdir=*)
-	AC_LIBDIR=`echo "$1" | sed -e 's/^[^=]*=//'`
+	__d=`echo "$1" | sed -e 's/^[^=]*=//'`
+	AC_LIBDIR=`__ac_dir "$__d"`
+	_set_libdir=1
 	shift 1;;
 
     X--exec|X--execdir)
-	AC_EXECDIR=$2
+	AC_EXECDIR=`__ac_dir "$2"`
+	_set_execdir=1
 	shift 2;;
 
     X--exec=*|X--execdir=*)
-	AC_EXECDIR=`echo "$1" | sed -e 's/^[^=]*=//'`
+	__d=`echo "$1" | sed -e 's/^[^=]*=//'`
+	AC_EXECDIR=`__ac_dir "$__d"`
+	_set_execdir=1
 	shift 1;;
 
     X--man|X--mandir)
-	AC_MANDIR=$2
+	AC_MANDIR=`__ac_dir "$2"`
+	_set_mandir=1
 	shift 2;;
 
     X--man=*|X--mandir=*)
-	AC_MANDIR=`echo "$1" | sed -e 's/^[^=]*=//'`
+	__d=`echo "$1" | sed -e 's/^[^=]*=//'`
+	AC_MANDIR=`__ac_dir "$__d"`
+	_set_mandir=1
 	shift 1;;
 
     X--use-*=*)
@@ -233,18 +259,16 @@ AC_CONTINUE () {
 AC_CHECK_HEADERS () {
     AC_PROG_CC
 
-    cat > /tmp/ngc$$.c << EOF
-#include <$1>
+    echo "/* AC_CHECK_HEADERS */" > /tmp/ngc$$.c
+    for hdr in $*; do
+	echo "#include <$hdr>" >> /tmp/ngc$$.c
+    done
+    echo "main() { }" >> /tmp/ngc$$.c
 
-main()
-{
-}
-EOF
-
-    test "$_sssh" || LOGN "checking for header $1"
+    test "$_sssh" || LOGN "checking for header $hdr"
 
     if $AC_CC -o /tmp/ngc$$ /tmp/ngc$$.c; then
-	AC_DEFINE 'HAVE_'`echo $1 | tr 'a-z' 'A-Z' | tr './' '_'` 1
+	AC_DEFINE 'HAVE_'`echo $hdr | tr 'a-z' 'A-Z' | tr './' '_'` 1
 	test "$_sssh" || TLOG " (found)"
 	rc=0
     else
@@ -518,13 +542,6 @@ EOF
     AC_MANDIR=${AC_MANDIR:-$AC_PREFIX/man}
     AC_CONFDIR=${AC_CONFDIR:-/etc}
 
-    AC_SUB 'srcdir'  "$AC_SRCDIR"
-    AC_SUB 'prefix'  "$AC_PREFIX"
-    AC_SUB 'exedir'  "$AC_EXECDIR"
-    AC_SUB 'libdir'  "$AC_LIBDIR"
-    AC_SUB 'confdir' "$AC_CONFDIR"
-    AC_SUB 'mandir'  "$AC_MANDIR"
-
     AC_PATH=${WITH_PATH:-$PATH}
     AC_PROG_CPP
     AC_PROG_INSTALL
@@ -761,6 +778,12 @@ AC_OUTPUT () {
     AC_SUB 'LIBS' "$AC_LIBS"
     AC_SUB 'CONFIGURE_FILES' "$__config_files"
     AC_SUB 'GENERATED_FILES' "$*"
+    AC_SUB 'srcdir'  "$AC_SRCDIR"
+    AC_SUB 'prefix'  "$AC_PREFIX"
+    AC_SUB 'exedir'  "$AC_EXECDIR"
+    AC_SUB 'libdir'  "$AC_LIBDIR"
+    AC_SUB 'confdir' "$AC_CONFDIR"
+    AC_SUB 'mandir'  "$AC_MANDIR"
 
     if [ -r config.sub ]; then
 	test "$AC_SED_PROG" || AC_PROG_SED
@@ -781,9 +804,9 @@ EOF
 	for makefile in $*;do
 	    if test -r $__d/${makefile}.in; then
 		LOG "generating $makefile"
-		mkdir -p `__ac_dirname ./$makefile` 2>/dev/null
+		./config.md `__ac_dirname ./$makefile` 2>/dev/null
 		$AC_SED_PROG -f config.sub < $__d/${makefile}.in > $makefile
-		__generated_files="$__generated_files $makefile"
+		__config_files="$__config_files $makefile"
 	    else
 		LOG "WARNING: ${makefile}.in does not exist!"
 	    fi
@@ -838,6 +861,45 @@ AC_PROG_INSTALL () {
     AC_SUB 'INSTALL' "$PROG_INSTALL"
     AC_SUB 'INSTALL_PROGRAM' "$PROG_INSTALL -s -m 755"
     AC_SUB 'INSTALL_DATA' "$PROG_INSTALL -m 444"
+
+    # finally build a little directory installer
+    # if mkdir -p works, use that, otherwise use install -d,
+    # otherwise build a script to do it by hand.
+    # in every case, test to see if the directory exists before
+    # making it.
+
+    if mkdir -p $$a/b; then
+	# I like this method best.
+	__mkdir="mkdir -p"
+	rmdir $$a/b
+	rmdir $$a
+    elif $PROG_INSTALL -d $$a/b; then
+	__mkdir="$PROG_INSTALL -d"
+	rmdir $$a/b
+	rmdir $$a
+    fi
+
+    __generated_files="$__generated_files $__cwd/config.md"
+    AC_SUB 'INSTALL_DIR' "$__cwd/config.md"
+    echo "#! /bin/sh"                                   > $__cwd/config.md
+    echo "# script generated" `date` "by configure.sh" >> $__cwd/config.md
+    echo                                               >> $__cwd/config.md
+    if [ "$__mkdir" ]; then
+	echo "test -d \"\$1\" || $__mkdir \"\$1\""     >> $__cwd/config.md
+	echo "exit $?"                                 >> $__cwd/config.md
+    else
+	cat - >> $__cwd/config.md << \EOD
+pieces=`IFS=/; for x in $1; do echo $x; done`
+dir=
+for x in $pieces; do
+    dir="$dir$x"
+    mkdir $dir || exit 1
+    dir="$dir/"
+done
+exit 0
+EOD
+    fi
+    chmod +x $__cwd/config.md
 }
 
 #
