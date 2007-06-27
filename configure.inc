@@ -57,7 +57,7 @@ ac_progname=$0
 ac_configure_command="$*"
 
 __d=`__ac_dirname "$ac_progname"`
-if "$__d" = "$ac_progname"; then
+if [ "$__d" = "$ac_progname" ]; then
     AC_SRCDIR=`pwd`
 else
     AC_SRCDIR=`cd $__d;pwd`
