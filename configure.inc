@@ -56,8 +56,12 @@ fi
 ac_progname=$0
 ac_configure_command="$*"
 
-AC_SRCDIR=`__ac_dirname "$ac_progname"`
-test "$AC_SRCDIR" = "$ac_progname" && AC_SRCDIR=`pwd`
+__d=`__ac_dirname "$ac_progname"`
+if "$__d" = "$ac_progname"; then
+    AC_SRCDIR=`pwd`
+else
+    AC_SRCDIR=`cd $__d;pwd`
+fi
 
 while [ $# -gt 0 ]; do
     unset matched
