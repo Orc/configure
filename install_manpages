@@ -26,7 +26,7 @@ for manpage in $*; do
 	    unset EXT
 	    ;;
     esac
-    test -d $DEST/man$EXT || mkdir -p $DEST/man$EXT || exit 1
+    ./config.md $DEST/man$EXT || exit 1
 
     if [ -f $manpage ]; then
 	# just copy it over

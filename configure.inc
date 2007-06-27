@@ -1,5 +1,5 @@
 #   %A%
-#   Copyright (c) 1999 David Parsons. All rights reserved.
+#   Copyright (c) 1999-2004 David Parsons. All rights reserved.
 #   
 #   Redistribution and use in source and binary forms, with or without
 #   modification, are permitted provided that the following conditions
@@ -37,9 +37,11 @@ ac_default_path="/sbin:/usr/sbin:/bin:/usr/bin:/usr/local/bin:/usr/X11R6/bin"
 ac_standard="--src=DIR		where the source lives (.)
 --prefix=DIR		where to install the final product (/usr/local)
 --execdir=DIR		where to put executables (prefix/bin)
+--sbindir=DIR		where to put static executables (prefix/sbin)
+--confdir=DIR		where to put configuration information (/etc)
 --libdir=DIR		where to put libraries (prefix/lib)
---mandir=DIR		where to put manpages (prefix/man)
---confdir=DIR		where to put configuration information (/etc)"
+--libexecdir=DIR	where to put private executables
+--mandir=DIR		where to put manpages"
 
 __fail=exit
 
@@ -108,6 +110,17 @@ while [ $# -gt 0 ]; do
 	_set_confdir=1
 	shift 1;;
 
+    X--libexec|X--libexecdir)
+	AC_LIBEXEC=`__ac_dir "$2"`
+	_set_libexec=1
+	shift 2;;
+
+    X--libexec=*|X--libexecdir=*)
+	__d=`echo "$1" | sed -e 's/^[^=]*=//'`
+	AC_LIBEXEC=`__ac_dir "$__d"`
+	_set_libexec=1
+	shift 1;;
+
     X--lib|X--libdir)
 	AC_LIBDIR=`__ac_dir "$2"`
 	_set_libdir=1
@@ -128,6 +141,17 @@ while [ $# -gt 0 ]; do
 	__d=`echo "$1" | sed -e 's/^[^=]*=//'`
 	AC_EXECDIR=`__ac_dir "$__d"`
 	_set_execdir=1
+	shift 1;;
+
+    X--sbin|X--sbindir)
+	AC_SBINDIR=`__ac_dir "$2"`
+	_set_sbindir=1
+	shift 2;;
+
+    X--sbin=*|X--sbindir=*)
+	__d=`echo "$1" | sed -e 's/^[^=]*=//'`
+	AC_SBINDIR=`__ac_dir "$__d"`
+	_set_sbindir=1
 	shift 1;;
 
     X--man|X--mandir)
@@ -169,7 +193,7 @@ while [ $# -gt 0 ]; do
 	if [ "$_var" ]; then
 	    _val=`echo "$1" | sed -e 's/^--with-[^=]*=\(.*\)$/\1/'`
 	    _v=`echo $_var | tr '[a-z]' '[A-Z]' | tr '-' '_'`
-	    eval WITH_${_v}=$_val
+	    eval WITH_${_v}=\"$_val\"
 	else
 	    echo "Bad option $1.   Use --help to show options" 1>&2
 	    exit 1
@@ -265,17 +289,16 @@ AC_CHECK_HEADERS () {
     done
     echo "main() { }" >> /tmp/ngc$$.c
 
-    test "$_sssh" || LOGN "checking for header $hdr"
+    LOGN "checking for header $hdr"
 
     if $AC_CC -o /tmp/ngc$$ /tmp/ngc$$.c; then
 	AC_DEFINE 'HAVE_'`echo $hdr | tr 'a-z' 'A-Z' | tr './' '_'` 1
-	test "$_sssh" || TLOG " (found)"
+	TLOG " (found)"
 	rc=0
     else
-	test "$_sssh" || TLOG " (not found)"
+	TLOG " (not found)"
 	rc=1
     fi
-    unset _sssh
     rm -f /tmp/ngc$$.c /tmp/ngc$$
     return $rc
 }
@@ -294,21 +317,20 @@ main()
 }
 EOF
 
-    test "$_sssh" || LOGN "checking for the $1 function"
+    LOGN "checking for the $1 function"
 
     if $AC_CC -o /tmp/ngc$$ /tmp/ngc$$.c $LIBS; then
 	AC_DEFINE `echo ${2:-HAVE_$1} | tr 'a-z' 'A-Z'` 1
-	test "$_sssh" || TLOG " (found)"
+	TLOG " (found)"
 	rc=0
     else
 	echo "offending command was:"
 	cat /tmp/ngc$$.c
 	echo "$AC_CC -o /tmp/ngc$$ /tmp/ngc$$.c $LIBS"
-	test "$_sssh" || TLOG " (not found)"
+	TLOG " (not found)"
 	rc=1
     fi
     rm -f /tmp/ngc$$.c /tmp/ngc$$
-    unset _sssh
     return $rc
 }
 
@@ -340,17 +362,16 @@ main()
 }
 EOF
 
-    test "$_sssh" || LOGN "checking that struct $struct has a $field field"
+    LOGN "checking that struct $struct has a $field field"
 
     if $AC_CC -o /tmp/ngc$$ /tmp/ngc$$.c $AC_LIBS 2>>config.log; then
 	AC_DEFINE HAVE_`echo ${struct}_$field | tr 'a-z' 'A-Z'`
-	test "$_sssh" || TLOG " (yes)"
+	TLOG " (yes)"
 	rc=0
     else
-	test "$_sssh" || TLOG " (no)"
+	TLOG " (no)"
 	rc=1
     fi
-    unset _sssh
     rm -f /tmp/ngc$$.c /tmp/ngc$$
     return $rc
 }
@@ -372,7 +393,20 @@ EOF
 
     TLOGN "checking the C compiler"
 
-    AC_CC=${CC:-`acLookFor cc`}
+    unset AC_CFLAGS AC_LDFLAGS
+
+    if [ "$CC" ] ; then
+	AC_CC="$CC"
+    elif [ "$WITH_PATH" ]; then
+	AC_CC=`acLookFor cc`
+    elif [ "`acLookFor cc`" ]; then
+	# don't specify the full path if the user is looking in their $PATH
+	# for a C compiler.
+	AC_CC=cc
+    fi
+
+    # finally check for POSIX c89
+    test "$AC_CC" || AC_CC=`acLookFor c89`
 
     if [ ! "$AC_CC" ]; then
 	TLOG " (no C compiler found)"
@@ -413,11 +447,7 @@ EOF
 	else
 	    AC_LDFLAGS=${CFLAGS:-"-g"}
 	fi
-	AC_SUB 'CFLAGS' "$AC_CFLAGS"
-	AC_SUB 'LDFLAGS' "$AC_LDFLAGS"
     else
-	AC_SUB 'CFLAGS' ''
-	AC_SUB 'LDFLAGS' ''
 	AC_FAIL " does not compile code properly"
     fi
 
@@ -536,10 +566,25 @@ AC_INIT () {
 
 EOF
 
+    if [ -d $AC_PREFIX/share/man ]; then
+	__share=/share
+    else
+	__share=
+    fi
+
+    if [ -d $AC_PREFIX/libexec ]; then
+	__libexec=libexec
+    else
+	__libexec=lib
+    fi
+
+
     AC_PREFIX=${AC_PREFIX:-/usr/local}
     AC_EXECDIR=${AC_EXECDIR:-$AC_PREFIX/bin}
+    AC_SBINDIR=${AC_SBINDIR:-$AC_PREFIX/sbin}
     AC_LIBDIR=${AC_LIBDIR:-$AC_PREFIX/lib}
-    AC_MANDIR=${AC_MANDIR:-$AC_PREFIX/man}
+    AC_MANDIR=${AC_MANDIR:-$AC_PREFIX$__share/man}
+    AC_LIBEXEC=${AC_LIBEXEC:-$AC_PREFIX/$__libexec}
     AC_CONFDIR=${AC_CONFDIR:-/etc}
 
     AC_PATH=${WITH_PATH:-$PATH}
@@ -565,15 +610,13 @@ AC_LIBRARY() {
 
     # first see if the function can be found in any of the
     # current libraries
-    _sssh=T
-    AC_CHECK_FUNCS $SRC && return 0
+    AC_QUIET AC_CHECK_FUNCS $SRC && return 0
 
     # then search through the list of libraries
     __libs="$LIBS"
     for x in $*; do
-	_sssh=T
 	LIBS="$__libs $x"
-	if AC_CHECK_FUNCS $SRC; then
+	if AC_QUIET AC_CHECK_FUNCS $SRC; then
 	    AC_LIBS="$AC_LIBS $x"
 	    return 0
 	fi
@@ -771,17 +814,65 @@ EOF
 
 
 #
+# AC_SCALAR_TYPES checks to see if the compiler can generate 2 and 4 byte ints.
+#
+AC_SCALAR_TYPES () {
+    cat > /tmp/pd$$.c << EOF
+#include <stdio.h>
+main()
+{
+    unsigned long v_long;
+    unsigned int v_int;
+    unsigned short v_short;
+
+    if (sizeof v_long == 4)
+	puts("#define DWORD	unsigned long");
+    else if (sizeof v_int == 4)
+	puts("#define DWORD	unsigned int");
+    else
+	exit(1);
+
+    if (sizeof v_int == 2)
+	puts("#define WORD	unsigned int");
+    else if (sizeof v_short == 2)
+	puts("#define WORD	unsigned short");
+    else
+	exit(2);
+    puts("#define BYTE	unsigned char");
+    exit(0);
+}
+EOF
+    rc=1
+    LOGN "defining WORD & DWORD scalar types"
+    if $AC_CC /tmp/pd$$.c -o /tmp/pd$$; then
+	if /tmp/pd$$  >> $__cwd/config.h; then
+	    rc=0
+	fi
+    fi
+    case "$rc" in
+    0) TLOG "" ;;
+    *) TLOG " ** FAILED **" ;;
+    esac
+    rm -f /tmp/pd$$ /tmp/pd$$.c
+}
+
+
+#
 # AC_OUTPUT generates makefiles from makefile.in's
 #
 AC_OUTPUT () {
     cd $__cwd
-    AC_SUB 'LIBS' "$AC_LIBS"
+    AC_SUB 'LIBS'    "$AC_LIBS"
     AC_SUB 'CONFIGURE_FILES' "$__config_files"
     AC_SUB 'GENERATED_FILES' "$*"
+    AC_SUB 'CFLAGS'  "$AC_CFLAGS"
+    AC_SUB 'LDFLAGS' "$AC_LDFLAGS"
     AC_SUB 'srcdir'  "$AC_SRCDIR"
     AC_SUB 'prefix'  "$AC_PREFIX"
     AC_SUB 'exedir'  "$AC_EXECDIR"
+    AC_SUB 'sbindir' "$AC_SBINDIR"
     AC_SUB 'libdir'  "$AC_LIBDIR"
+    AC_SUB 'libexec' "$AC_LIBEXEC"
     AC_SUB 'confdir' "$AC_CONFDIR"
     AC_SUB 'mandir'  "$AC_MANDIR"
 
@@ -879,7 +970,7 @@ AC_PROG_INSTALL () {
 	rmdir $$a
     fi
 
-    __generated_files="$__generated_files $__cwd/config.md"
+    __config_files="$__config_files config.md"
     AC_SUB 'INSTALL_DIR' "$__cwd/config.md"
     echo "#! /bin/sh"                                   > $__cwd/config.md
     echo "# script generated" `date` "by configure.sh" >> $__cwd/config.md
@@ -995,4 +1086,10 @@ AC_CONFIG() {
     AC_DEFINE "PATH_$1" \""$2"\"
     AC_MAK "$1"
     AC_SUB "$1" "$2"
+}
+
+#
+# AC_QUIET does something quietly
+AC_QUIET() {
+    eval $* 5>/dev/null
 }

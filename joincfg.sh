@@ -1,6 +1,7 @@
 #! /bin/sh
 #
-# %Z% %M% %E%: concatenate configure.sh and configure.inc into configure.sh
+# %Z% %M% %E%: merge configure.sh and
+# configure.inc into a single configure.sh
 #
 
 for req in configure.sh configure.inc; do
