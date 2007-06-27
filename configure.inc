@@ -746,9 +746,10 @@ AC_OUTPUT () {
 	echo "#endif/* ${AC_CONFIGURE_FOR} */" >> config.h
 
 	rm -f config.cmd
+	Q=\'
 	cat - > config.cmd << EOF
 #! /bin/sh
-${CC:+CC=\"$CC\"} ${CFLAGS:+CFLAGS=\"$CFLAGS\"} $ac_progname $ac_configure_command
+${CC:+CC=${Q}${CC}${Q}} ${CFLAGS:+CFLAGS=${Q}${CFLAGS}${Q}} $ac_progname $ac_configure_command
 EOF
 	chmod +x config.cmd
 
