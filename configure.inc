@@ -566,8 +566,15 @@ AC_INIT () {
 
 EOF
 
+    unset __share
     if [ -d $AC_PREFIX/share/man ]; then
-	__share=/share
+	for t in 1 2 3 4 5 6 7 8 9; do
+	    if [ -d $AC_PREFIX/share/man/man$t ]; then
+		__share=/share
+	    elif [ -d $AC_PREFIX/share/man/cat$t ]; then
+		__share=/share
+	    fi
+	done
     else
 	__share=
     fi
