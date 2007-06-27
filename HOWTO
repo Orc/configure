@@ -62,15 +62,27 @@ AC_CHECK_HEADERS hdr
 		If it is, write HAVE_<hdr> into config.h
 		and internally to configure
 
-AC_CHECK_FUNCS	ftn
+AC_CHECK_FUNCS	ftn [headers]
 		checks to see if a function is there.
 		If it is, write HAVE_<ftn> into config.h
 		and internally to configure
+
+AC_LIBRARY	ftn [headers] [-llibrary {...}]
+		Check to see if a function exists in the current
+		library set or one of a list of new libraries.
 
 AC_CHECK_FIELD	structure field include0 ... includeN
 		checks if <structure> contains <field>.
 		if it does, define HAVE_<structure>_<field> in
 		config.h and internally to configure
+
+AC_CHECK_RESOLVER
+		Look for the bind4 resolver library, and do
+		some parania checks to see that it's the 
+		proper version of the library.  The function
+		also checks to see if you need to set BIND_8_COMPAT
+		(for the broken bind library on Darwin, and probably
+		for FreeBSD 6 and Dragonfly BSD)
 
 AC_PROG_CC	finds the C compiler and checks to see if it works
 		if it does, set AC_CC to the path to the compiler
@@ -135,6 +147,12 @@ AC_FAIL		spits out an error message to the log, then either
 
 AC_SUB		writes a substitution into config.sub
 AC_MAK		writes a Makefile define into config.mak
-AC_DEFINE	writes a #define into config.h
+
+AC_DEFINE	def value
+		writes a #define into config.h
+
+AC_INCLUDE	file
+		writes #include "file" into config.h
+
 AC_CONFIG	writes a PATH_ variable into config.h, a makefile define
 		into config.mak, and a substitution into config.sub

@@ -1,5 +1,5 @@
 #   %A%
-#   Copyright (c) 1999-2004 David Parsons. All rights reserved.
+#   Copyright (c) 1999-2007 David Parsons. All rights reserved.
 #   
 #   Redistribution and use in source and binary forms, with or without
 #   modification, are permitted provided that the following conditions
@@ -56,7 +56,12 @@ __ac_dirname() {
 fi
 
 ac_progname=$0
-ac_configure_command="$*"
+ac_configure_command=
+Q=\'
+for x in "$@"; do
+    ac_configure_command="$ac_configure_command $Q$x$Q"
+done
+# ac_configure_command="$*"
 
 __d=`__ac_dirname "$ac_progname"`
 if [ "$__d" = "$ac_progname" ]; then
@@ -310,23 +315,71 @@ AC_CHECK_HEADERS () {
 AC_CHECK_FUNCS () {
     AC_PROG_CC
 
+F=$1
+shift
+rm -f /tmp/ngc$$.c
+
+while [ "$1" ]; do
+    echo "#include <$1>" >> /tmp/ngc$$.c
+    shift
+done
+
     cat >> /tmp/ngc$$.c << EOF
 main()
 {
-    $1();
+
+    $F();
 }
 EOF
 
-    LOGN "checking for the $1 function"
+    LOGN "checking for the $F function"
 
     if $AC_CC -o /tmp/ngc$$ /tmp/ngc$$.c $LIBS; then
-	AC_DEFINE `echo ${2:-HAVE_$1} | tr 'a-z' 'A-Z'` 1
+	AC_DEFINE `echo ${2:-HAVE_$F} | tr 'a-z' 'A-Z'` 1
 	TLOG " (found)"
 	rc=0
     else
 	echo "offending command was:"
 	cat /tmp/ngc$$.c
 	echo "$AC_CC -o /tmp/ngc$$ /tmp/ngc$$.c $LIBS"
+	TLOG " (not found)"
+	rc=1
+    fi
+    rm -f /tmp/ngc$$.c /tmp/ngc$$
+    return $rc
+}
+
+
+#
+# check to see if some structure exists
+#
+# usage: AC_CHECK_STRUCT structure {include ...}
+#
+AC_CHECK_STRUCT () {
+    AC_PROG_CC
+    struct=$1
+    shift
+
+    rm -f /tmp/ngc$$.c
+
+    for include in $*; do
+	echo "#include <$include>" >> /tmp/ngc$$.c
+    done
+
+    cat >> /tmp/ngc$$.c << EOF
+main()
+{
+    struct $struct foo;
+}
+EOF
+
+    LOGN "checking for struct $struct"
+
+    if $AC_CC -o /tmp/ngc$$ /tmp/ngc$$.c $AC_LIBS 2>>config.log; then
+	AC_DEFINE HAVE_STRUCT_`echo ${struct} | tr 'a-z' 'A-Z'`
+	TLOG " (found)"
+	rc=0
+    else
 	TLOG " (not found)"
 	rc=1
     fi
@@ -615,15 +668,25 @@ AC_LIBRARY() {
     SRC=$1
     shift
 
+    __acllibs=
+    __aclhdrs=
+
+    for x in "$@"; do
+	case X"$x" in
+	X-l*) __acllibs="$__acllibs $x" ;;
+	*)    __aclhdrs="$__aclhdrs $x" ;;
+	esac
+    done
+
     # first see if the function can be found in any of the
     # current libraries
-    AC_QUIET AC_CHECK_FUNCS $SRC && return 0
+    AC_QUIET AC_CHECK_FUNCS $SRC $__aclhdrs && return 0
 
     # then search through the list of libraries
     __libs="$LIBS"
-    for x in $*; do
+    for x in $__acllibs; do
 	LIBS="$__libs $x"
-	if AC_QUIET AC_CHECK_FUNCS $SRC; then
+	if AC_QUIET AC_CHECK_FUNCS $SRC $__aclhdrs; then
 	    AC_LIBS="$AC_LIBS $x"
 	    return 0
 	fi
@@ -746,6 +809,21 @@ AC_PROG_FIND () {
 	MF_PATH_INCLUDE FIND find
 	rc=$?
 	AC_FIND_PROG=$DEST
+	return $rc
+    fi
+    return 0
+}
+
+
+#
+# AC_PROG_AWK looks for the awk program and sets the AWK environment
+# variable
+#
+AC_PROG_AWK () {
+    if test -z "$AC_AWK_PROG"; then
+	MF_PATH_INCLUDE AWK awk
+	rc=$?
+	AC_AWK_PROG=$DEST
 	return $rc
     fi
     return 0
@@ -914,6 +992,123 @@ EOF
     else
 	echo 
     fi
+}
+
+#
+# AC_CHECK_FLOCK checks to see if flock() exists and if the LOCK_NB argument
+# works properly.
+#
+AC_CHECK_FLOCK() {
+
+    AC_CHECK_HEADERS sys/types.h sys/file.h fcntl.h
+
+    cat << EOF > $$.c
+#include <stdio.h>
+#include <sys/file.h>
+#include <sys/types.h>
+#include <fcntl.h>
+
+main()
+{
+    int x = open("$$.c", O_RDWR, 0666);
+    int y = open("$$.c", O_RDWR, 0666);
+
+    if (flock(x, LOCK_EX) != 0)
+	exit(1);
+    if (flock(y, LOCK_EX|LOCK_NB) == 0)
+	exit(1);
+    exit(0);
+}
+EOF
+
+    LOGN "checking for flock()"
+    HAS_FLOCK=0
+    if $AC_CC -o flock $$.c ; then
+	if ./flock ; then
+	    LOG " (found)"
+	    HAS_FLOCK=1
+	    AC_DEFINE HAS_FLOCK
+	else
+	    LOG " (bad)"
+	fi
+    else
+	LOG " (no)"
+    fi
+
+    rm -f flock $$.c
+
+    case "$HAS_FLOCK" in
+    0) return 1 ;;
+    *) return 0 ;;
+    esac
+}
+
+
+#
+# AC_CHECK_RESOLVER finds out whether the berkeley resolver is
+# present on this system.
+#
+AC_CHECK_RESOLVER () {
+    AC_PROG_CC
+
+    TLOGN "checking for the Berkeley resolver library"
+
+    cat > /tmp/ngc$$.c << EOF
+#include <sys/types.h>
+#include <netinet/in.h>
+#include <arpa/nameser.h>
+#include <resolv.h>
+
+main()
+{
+    char bfr[256];
+
+    res_init();
+    res_query("hello", C_IN, T_A, bfr, sizeof bfr);
+}
+EOF
+
+    # first see if res_init() and res_query() actually exist...
+
+    if $AC_CC -o /tmp/ngc$$ /tmp/ngc$$.c; then
+	__extralib=
+    elif $AC_CC -o /tmp/ngc$$ /tmp/ngc$$.c -lresolv; then
+	__extralib=-lresolv
+	AC_LIBS="$AC_LIBS -lresolv"
+    else
+	TLOG " (not found)"
+	rm -f /tmp/ngc$$.c
+	return 1
+    fi
+
+    # if res_init() and res_query() actually exist, check to
+    # see if the HEADER structure is defined ...
+
+    cat > /tmp/ngc$$.c << EOF
+#include <sys/types.h>
+#include <netinet/in.h>
+#include <arpa/nameser.h>
+#include <resolv.h>
+
+main()
+{
+    HEADER hhh;
+    res_init();
+}
+EOF
+
+    if $AC_CC -o /tmp/ngc$$ /tmp/ngc$$.c $__extralib; then
+	TLOG " (found)"
+    elif $AC_CC -DBIND_8_COMPAT -o /tmp/ngc$$ /tmp/ngc$$.c $__extralib; then
+	TLOG " (bind9 with BIND_8_COMPAT)"
+	AC_DEFINE BIND_8_COMPAT 1
+    else
+	TLOG " (broken)"
+	rm -f /tmp/ngc$$.c
+	return 1
+    fi
+    rm -f /tmp/ngc$$.c
+    return 0
 }
 
 
@@ -1085,6 +1280,12 @@ AC_MAK() {
 # AC_DEFINE adds a #define to config.h
 AC_DEFINE() {
     echo "#define $1 ${2:-1}" >> $__cwd/config.h
+}
+
+#
+# AC_INCLUDE adds a #include to config.h
+AC_INCLUDE() {
+    echo "#include \"$1\"" >> $__cwd/config.h
 }
 
 #
