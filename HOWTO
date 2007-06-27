@@ -1,0 +1,83 @@
+LOG		write a message to the terminal and th logfile
+LOGN		write a message to the terminal without a newline at the end,
+		but to the logfile with a newline at the end.
+TLOG		write a message to the terminal
+TLOGN		write a message to the terminal, without a newline.
+
+AC_CONTINUE	don't terminate if something goes wrong.
+
+AC_CHECK_HEADERS hdr
+		checks to see if a given C headerfile is there.
+		If it is, write HAVE_<hdr> into config.h
+		and internally to configure
+
+AC_CHECK_FUNCS	ftn
+		checks to see if a function is there.
+		If it is, write HAVE_<ftn> into config.h
+		and internally to configure
+
+AC_CHECK_FIELD	structure field include0 ... includeN
+		checks if <structure> contains <field>.
+		if it does, define HAVE_<structure>_<field> in
+		config.h and internally to configure
+
+AC_PROG_CC	finds the C compiler and checks to see if it works
+		if it does, set AC_CC to the path to the compiler
+		(OVERRIDE with CC=), AC_CFLAGS to the provided CFLAGS,
+		AC_LDFLAGS to the provided LDFLAGS, and sets substitutions
+		in config.sub
+
+acLookFor	quietly looks for a program
+		Internal program, returns "" or the pathname of the program.
+
+MF_PATH_INCLUDE	<file> <candidate0 ... candidateN>
+		checks for a file in a list of candidates.
+		If it finds it, define HAVE_<file> to 1 in
+		config.mak, PATH_<file> to the full pathname of
+		the file in config.h, substitute @<file>@ with
+		the full pathname in config.sub, and create a local
+		variable CF_<file> for configure to use.
+
+AC_INIT	initializes configure
+		Initialize config.log, config.sub, config.h,
+		config.mak, and zeros config.cmd.  Also checks to
+		see whether echo -n or echo\c is how to echo without
+		newlines.  Rearranges file descriptors so that
+		stdout and stderr point to config.log, and fd 5 points
+		to the original stdout.
+		sets up local variables AC_PREFIX, AC_EXECDIR, AC_LIBDIR,
+		AC_MANDIR, AC_CONFDIR, AC_SRCDIR.
+		If --with-path was given on the command line, set AC_PATH
+		from it, otherwise set AC_PATH to the current $PATH.
+		runs AC_PROG_CPP to find cpp
+		runs AC_PROG_INSTALL to find install
+
+
+AC_PROG_YACC	looks for yacc, and trys to figure out if it's yacc or
+		something else. If it's bison, define BISON in config.mak,
+		and YACC as bison -y; if it's yacc, just define YACC.
+		Otherwise like MF_PATH_INCLUDE
+AC_PROG_LN_S	looks for ln, and sees if ln -s (symlinks) works.
+                Otherwise like MF_PATH_INCLUDE
+AC_PROG_FIND	looks for find
+                Otherwise like MF_PATH_INCLUDE
+AC_PROG_SET	looks for sed
+                Otherwise like MF_PATH_INCLUDE
+
+AC_HEADER_SYS_WAIT	looks for sys/wait.h ( AC_CHECK_HEADERS sys/wait.h )
+
+AC_TYPE_PID_T	looks to see if the pid_t type exists.
+
+AC_C_CONST	checks that the ``const'' keyword exists
+AC_OUTPUT	finishes configure, processes .in files
+AC_PROG_INSTALL	find the install program, determine whether it's gnu
+		install or BSD install
+AC_PROG_CPP	looks for cpp.
+AC_FAIL		spits out an error message to the log, then either
+		exits or continues (depending on if AC_CONTINUE was
+                previously called)
+AC_SUB		writes a substitution into config.sub
+AC_MAK		writes a Makefile define into config.mak
+AC_DEFINE	writes a #define into config.h
+AC_CONFIG	writes a PATH_ variable into config.h, a makefile define
+		into config.mak, and a substitution into config.sub

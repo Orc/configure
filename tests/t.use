@@ -1,0 +1,36 @@
+# test that --use-x, --use-x=yes, --use-x=no work
+# also test that invalid --use-x doesn't work
+
+set - --use-x --use-y=yes --use-z=no
+
+. ../configure.inc
+
+yes() {
+    _dol='$'
+    _v=`eval echo $_dol$1`
+    if [ ! "$_v" ]; then
+	LOG "$1 does not appear to be set"
+	exit 1
+    elif [ "$_v" != T ]; then
+	LOG "$1 was not set to T (is $_v)"
+	exit 1
+    fi
+}
+
+no() {
+    _dol='$'
+    _val=`eval echo $_dol$1`
+
+    if [ "$_val" ]; then
+	LOG "$1 was set"
+	exit 1
+    fi
+}
+
+AC_INIT use
+
+yes 'USE_X' || exit 1
+yes 'USE_Y' || exit 1
+no 'USE_Z' || exit 1
+
+exit 0

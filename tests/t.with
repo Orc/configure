@@ -1,0 +1,23 @@
+# test that --with-x & --with-x=Y work
+
+set - --with-X --with-y=z
+
+. ../configure.inc
+
+validate() {
+    _dol='$'
+    _v=`eval echo $_dol$1`
+
+    if [ ! "$_v" ]; then
+	LOG "$1 did not get set"
+	exit 1
+    elif [ "$_v" != "${2:-1}" ]; then
+	LOG "$1 did not get set to ${2:-1}"
+	exit 1
+    fi
+}
+AC_INIT with
+
+validate 'WITH_X'
+validate 'WITH_Y' z
+exit 0

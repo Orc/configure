@@ -1,0 +1,18 @@
+#! /bin/sh
+#
+#  %Z% %M% %E% %I%
+#
+# Test harness for testing out configure.inc
+
+
+for x in t.*;do
+    MSG=`sh ./$x`
+    if [ "$?" -ne 0 ]; then
+	echo "$MSG";
+	exit 1;
+    fi
+    rm -f config.*
+    echo "passed $x"
+done
+echo "all tests completed successfully -- looks like configure.inc still works"
+exit 0
