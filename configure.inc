@@ -1,4 +1,4 @@
-#   %A%
+#
 #   Copyright (c) 1999-2007 David Parsons. All rights reserved.
 #   
 #   Redistribution and use in source and binary forms, with or without
@@ -282,11 +282,37 @@ AC_CONTINUE () {
     __fail="return"
 }
 
+
+#
+# generate a .o file from sources
+#
+__MAKEDOTO() {
+    AC_PROG_CC
+
+    if $AC_CC -c -o /tmp/doto$$.o "$@" $AC_LIBS 2>/tmp/doto$$.err; then
+	rm -f /tmp/doto$$.o /tmp/doto$$.err
+	TLOG " (found)"
+	return 0
+    fi
+    rm -f /tmp/doto$$.o
+    TLOG " (not found)"
+    echo "test failed:  command was $AC_CC -c -o /tmp/doto$$.o" "$@" $AC_LIBS
+    echo "output:"
+    cat /tmp/doto$$.err
+    rm -f /tmp/doto$$.err
+    echo "offending sources:"
+    for x in "$@"; do
+	echo "$x:"
+	cat $x
+    done
+    return 1
+}
+
+
 #
 # Emulate gnu autoconf's AC_CHECK_HEADERS() function
 #
 AC_CHECK_HEADERS () {
-    AC_PROG_CC
 
     echo "/* AC_CHECK_HEADERS */" > /tmp/ngc$$.c
     for hdr in $*; do
@@ -294,17 +320,15 @@ AC_CHECK_HEADERS () {
     done
     echo "main() { }" >> /tmp/ngc$$.c
 
-    LOGN "checking for header $hdr"
+    LOGN "looking for header $hdr"
 
-    if $AC_CC -o /tmp/ngc$$ /tmp/ngc$$.c; then
+    if __MAKEDOTO /tmp/ngc$$.c; then
 	AC_DEFINE 'HAVE_'`echo $hdr | tr 'a-z' 'A-Z' | tr './' '_'` 1
-	TLOG " (found)"
 	rc=0
     else
-	TLOG " (not found)"
 	rc=1
     fi
-    rm -f /tmp/ngc$$.c /tmp/ngc$$
+    rm -f /tmp/ngc$$.c
     return $rc
 }
 
@@ -332,7 +356,7 @@ main()
 }
 EOF
 
-    LOGN "checking for the $F function"
+    LOGN "looking for the $F function"
 
     if $AC_CC -o /tmp/ngc$$ /tmp/ngc$$.c $LIBS; then
 	AC_DEFINE `echo ${2:-HAVE_$F} | tr 'a-z' 'A-Z'` 1
@@ -356,7 +380,6 @@ EOF
 # usage: AC_CHECK_STRUCT structure {include ...}
 #
 AC_CHECK_STRUCT () {
-    AC_PROG_CC
     struct=$1
     shift
 
@@ -373,17 +396,50 @@ main()
 }
 EOF
 
-    LOGN "checking for struct $struct"
+    LOGN "looking for struct $struct"
 
-    if $AC_CC -o /tmp/ngc$$ /tmp/ngc$$.c $AC_LIBS 2>>config.log; then
+    if __MAKEDOTO /tmp/ngc$$.c; then
 	AC_DEFINE HAVE_STRUCT_`echo ${struct} | tr 'a-z' 'A-Z'`
-	TLOG " (found)"
 	rc=0
     else
-	TLOG " (not found)"
 	rc=1
     fi
-    rm -f /tmp/ngc$$.c /tmp/ngc$$
+    rm -f /tmp/ngc$$.c
+    return $rc
+}
+
+
+#
+# check to see if some type exists
+#
+# usage: AC_CHECK_TYPE type {include ...}
+#
+AC_CHECK_TYPE () {
+    type=$1
+    shift
+
+    rm -f /tmp/ngc$$.c
+
+    for include in $*; do
+	echo "#include <$include>" >> /tmp/ngc$$.c
+    done
+
+    cat >> /tmp/ngc$$.c << EOF
+main()
+{
+    $type foo;
+}
+EOF
+
+    LOGN "looking for $type type"
+
+    if __MAKEDOTO /tmp/ngc$$.c; then
+	AC_DEFINE HAVE_TYPE_`echo ${type} | tr 'a-z' 'A-Z'`
+	rc=0
+    else
+	rc=1
+    fi
+    rm -f /tmp/ngc$$.c
     return $rc
 }
 
@@ -394,7 +450,6 @@ EOF
 # usage: AC_CHECK_FIELD structure field {include ...}
 #
 AC_CHECK_FIELD () {
-    AC_PROG_CC
 
     struct=$1
     field=$2
@@ -417,15 +472,13 @@ EOF
 
     LOGN "checking that struct $struct has a $field field"
 
-    if $AC_CC -o /tmp/ngc$$ /tmp/ngc$$.c $AC_LIBS 2>>config.log; then
+    if __MAKEDOTO /tmp/ngc$$.c; then
 	AC_DEFINE HAVE_`echo ${struct}_$field | tr 'a-z' 'A-Z'`
-	TLOG " (yes)"
 	rc=0
     else
-	TLOG " (no)"
 	rc=1
     fi
-    rm -f /tmp/ngc$$.c /tmp/ngc$$
+    rm -f /tmp/ngc$$.c
     return $rc
 }
 
@@ -472,7 +525,12 @@ EOF
 
     TLOGN " ($AC_CC)"
     if [ $status -eq 0 ]; then
-	TLOG " ok"
+	if $AC_CC -v 2>&1 | grep 'gcc version' >/dev/null; then
+	    TLOG " oh ick, it looks like gcc"
+	    IS_BROKEN_CC=T
+	else
+	    TLOG " ok"
+	fi
 
 	# check that the CFLAGS and LDFLAGS aren't bogus
 
@@ -652,7 +710,7 @@ EOF
     AC_PROG_INSTALL
 
     ac_os=`uname -s`
-    _os=`echo $ac_os | tr '[a-z]' '[A-Z]'`
+    _os=`echo $ac_os | tr '[a-z]' '[A-Z]' | sed -e 's/[^A-Z0-9_].*$//'`
     AC_DEFINE OS_$_os	1
     eval OS_${_os}=1
     unset _os
@@ -766,6 +824,24 @@ AC_PROG_YACC () {
 
 
 #
+# AC_PROG looks for a program
+#
+AC_PROG () {
+    PN=`basename $1 | tr '[a-z]' '[A-Z]' | tr -dc '[A-Z]'`
+    TLOGN "looking for $1"
+    DEST=`acLookFor $1`
+    if [ "$DEST" ]; then
+	AC_SUB $PN $DEST
+	TLOG " ($DEST)"
+	return 0
+    fi
+    AC_SUN $PN true
+    TLOG " (not found)"
+    return 1
+}
+
+
+#
 # AC_PROG_LN_S checks to see if ln exists, and, if so, if ln -s works
 #
 AC_PROG_LN_S () {
@@ -856,23 +932,9 @@ AC_HEADER_SYS_WAIT () {
 # AC_TYPE_PID_T checks to see if the pid_t type exists
 #
 AC_TYPE_PID_T () {
-    cat > /tmp/pd$$.c << EOF
-#include <sys/types.h>
-main() { pid_t me; }
-EOF
 
-    LOGN "checking for pid_t"
-
-    if $AC_CC -c /tmp/pd$$.c -o /tmp/pd$$.o; then
-	TLOG " (found)"
-	rc=0
-    else
-	echo "typedef int pid_t;" >> $__cwd/config.h
-	TLOG " (not found)"
-	rc=1
-    fi
-    rm -f /tmp/pd$$.o /tmp/pd$$.c
-    return $rc
+    AC_CHECK_TYPE pid_t sys/types.h
+    return $?
 }
 
 
@@ -885,15 +947,33 @@ const char me=1;
 EOF
     LOGN "checking for \"const\" keyword"
 
-    if $AC_CC -c /tmp/pd$$.c -o /tmp/pd$$.o; then
-	TLOG " (yes)"
+    if __MAKEDOTO /tmp/pd$$.c; then
 	rc=0
     else
 	AC_DEFINE 'const' '/**/'
-	TLOG " (no)"
 	rc=1
     fi
-    rm -f /tmp/pd$$.o /tmp/pd$$.c
+    rm -f /tmp/pd$$.c
+    return $rc
+}
+
+
+#
+# AC_C_VOLATILE checks to see if the compiler supports the volatile keyword
+#
+AC_C_VOLATILE () {
+    cat > /tmp/pd$$.c << EOF
+f() { volatile char me=1; }
+EOF
+    LOGN "checking for \"volatile\" keyword"
+
+    if __MAKEDOTO /tmp/pd$$.c; then
+	rc=0
+    else
+	AC_DEFINE 'volatile' '/**/'
+	rc=1
+    fi
+    rm -f /tmp/pd$$.c
     return $rc
 }
 
@@ -1021,18 +1101,18 @@ main()
 }
 EOF
 
-    LOGN "checking for flock()"
+    LOGN "checking flock() sanity"
     HAS_FLOCK=0
     if $AC_CC -o flock $$.c ; then
 	if ./flock ; then
-	    LOG " (found)"
+	    LOG " (good)"
 	    HAS_FLOCK=1
 	    AC_DEFINE HAS_FLOCK
 	else
 	    LOG " (bad)"
 	fi
     else
-	LOG " (no)"
+	LOG " (not found)"
     fi
 
     rm -f flock $$.c
@@ -1051,7 +1131,7 @@ EOF
 AC_CHECK_RESOLVER () {
     AC_PROG_CC
 
-    TLOGN "checking for the Berkeley resolver library"
+    TLOGN "looking for the Berkeley resolver library"
 
     __ACR_rc=0
 
@@ -1110,7 +1190,7 @@ main()
 }
 EOF
 
-    LOGN "checking for the alloca function"
+    LOGN "looking for the alloca function"
     if $AC_CC -DT /tmp/ngc$$.c -o /tmp/ngc$$; then
 	AC_DEFINE 'HAVE_ALLOCA_H' 1
 	status=0
@@ -1129,6 +1209,41 @@ EOF
 
 
 #
+# AC_CHECK_BASENAME looks for a copy of basename that does NOT use
+# a local static buffer to hold results in.
+#
+AC_CHECK_BASENAME() {
+    TLOGN "looking for a reentrant basename "
+
+    cat > /tmp/ngc$$.c << EOF
+#include <string.h>
+
+main()
+{
+    char *a = basename("/a/test");
+    char *b = basename("/a/nother");
+
+    return (strcmp(a,b) != 0) ? 0 : 1;
+
+}
+EOF
+
+    if $AC_CC -o /tmp/ngc$$ /tmp/ngc$$.c $LIBS; then
+	if /tmp/ngc$$; then
+	    TLOG "(found)"
+	    AC_DEFINE 'HAVE_BASENAME' 1
+	    AC_CHECK_HEADERS libgen.h
+	else
+	    TLOG "(broken)"
+	fi
+    else
+	TLOG "(not found)"
+    fi
+    rm -f /tmp/ngc$$ /tmp/ngc$$.c
+}
+
+
+#
 # AC_PROG_INSTALL finds the install program and guesses whether it's a 
 # Berkeley or GNU install program
 #
@@ -1136,7 +1251,7 @@ AC_PROG_INSTALL () {
 
     DEST=`acLookFor install`
 
-    LOGN "checking for install"
+    LOGN "looking for install"
     unset IS_BSD
     if [ "$DEST" ]; then
 	# BSD install or GNU install?  Let's find out...
