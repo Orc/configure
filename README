@@ -1,0 +1,24 @@
+This is my attempt at a autoconfiguration environment somewhat like the
+FSF's hugely complicated configure/autoconf/etc environment, written
+after the n'th attempt to run GNU configure on an old Linux or FreeBSD
+system, only to have it throw up its arms in despair upon discovering
+that the target machine was not a new Redhat or Debian system   (this
+isn't strictly a problem with GNU configure -- there are many MANY open
+source projects out there that assume all the world's a Centos 7 or
+macos Sierra box and only use GNU configure because it's the fashion --
+but the generated configure files are such a convoluted mess that it is
+EXTREMELY difficult to force them to work on older machines even if the
+offending code is perfectly capable of correctly compiling there.)
+
+configure.inc is a shell include file that contains scripts to do most
+of the dirty work of finding out what your build environment should
+be.  configure.sh is a user-written script that uses functions from
+configure.inc to probe the target system to tell you how to configure
+the program to compile there.
+
+The HOWTO file gives a q&d runthrough of how a configure.sh file is
+laid out, and the samples subdirectory holds some configure.sh files
+from various projects of mine.
+
+
+-david parsons (31-Mar-2017)

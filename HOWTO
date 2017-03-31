@@ -46,7 +46,7 @@ AC_LIBS="libraries that are needed to build"
 
 
 
-Commands available from configure.inc
+(Some of the) commands available from configure.inc
 
 
 LOG		write a message to the terminal and th logfile
