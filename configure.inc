@@ -660,13 +660,14 @@ AC_PROG_LEX() {
 	    return 1
 	fi
     fi
+    TLOG "($DEST)"
 
     if AC_LIBRARY yywrap -ll -lfl; then
-	TLOG "($DEST)"
 	return 0
+    else
+	TLOG "(no lex library found)"
+	return 1
     fi
-    TLOG "(no lex library found)"
-    return 1
 }
 
 
