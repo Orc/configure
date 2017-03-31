@@ -826,6 +826,25 @@ AC_TYPE_PID_T () {
 
 
 #
+# check for the existence of  __attribute__((__noreturn__))
+#
+AC_CHECK_NORETURN() {
+    AC_PROG_CC
+
+    echo "extern int noreturn  __attribute__((__noreturn__));" > ngc$$.c
+
+    TLOGN "Checking __attribute__((__noreturn__)) "
+    if $AC_CC -c ngc$$.c; then
+	TLOG "(yes)"
+	AC_DEFINE 'NORETURN' ' __attribute__((__noreturn__))'
+    else
+	TLOG "(no)"
+	AC_DEFINE 'NORETURN' ''
+    fi
+}
+
+
+#
 # AC_C_CONST checks to see if the compiler supports the const keyword
 #
 AC_C_CONST () {
