@@ -1582,6 +1582,8 @@ EOF
 AC_PROG_CPP () {
     test "$AC_CPP_FILTER" && return
 
+    AC_PROG_CC
+
     if [ "$AC_CPP_PROG" ]; then
 	DEST=$AC_CPP_PROG
     else
@@ -1593,6 +1595,12 @@ AC_PROG_CPP () {
 
     unset fail
     LOGN "Looking for cpp"
+    
+    if acCheckCPP $AC_CC -E; then
+	TLOG " (using $AC_CC -E as a cpp pipeline)"
+	return 0
+    fi
+    
     if [ "$DEST" ]; then
 	TLOGN " ($DEST)"
 	acCheckCPP $DEST "$CPPFLAGS" || \
