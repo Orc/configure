@@ -843,6 +843,7 @@ AC_CHECK_NORETURN() {
 	TLOG "(no)"
 	AC_DEFINE 'NORETURN' ''
     fi
+    rm -f ngc$$.o ngc$$.c
 }
 
 
