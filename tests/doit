@@ -6,13 +6,13 @@
 
 
 for x in t.*;do
+    printf "$x\t"
     MSG=`sh ./$x`
     if [ "$?" -ne 0 ]; then
-	echo "$MSG";
+	echo "failed ($MSG)"
 	exit 1;
     fi
     rm -f config.*
-    echo "passed $x"
+    echo "passed"
 done
-echo "all tests completed successfully -- looks like configure.inc still works"
 exit 0
