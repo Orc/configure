@@ -540,6 +540,7 @@ AC_INIT () {
     rm -f $$
 
     LOG "Configuring for [$1]"
+    _MK_LIBRARIAN=Y
 
     cat > "$__cwd"/config.h << EOF
 /*
@@ -1061,7 +1062,7 @@ AC_OUTPUT () {
     AC_SUB 'confdir'  "$AC_CONFDIR"
     AC_SUB 'mandir'   "$AC_MANDIR"
 
-    if echo "$__config_files" | grep -v librarian.sh >/dev/null; then
+    if [ "$_MK_LIBRARIAN" ] && echo "$__config_files" | grep -v librarian.sh >/dev/null; then
 	# write a librarian that works with static libraries
 	if AC_PROG_LN_S ; then
 	    __dolink=$PROG_LN_S
@@ -1439,10 +1440,12 @@ AC_CC_SHLIBS () {
     AC_PROG_CC || AC_FAIL "Need a C compiler to build shared libraries"
     AC_PROG_LN_S || AC_FAIL "Need to be able to make symbolic links for shared libraries"
     AC_PROG_INSTALL || AC_FAIL "Need an install program to install shared libraries"
+    
     LOGN "checking whether the C compiler can build shared libraries "
 
     echo "int some_variable = 0;" > ngc$$.c 
 
+    _MK_LIBRARIAN=
     if uname -a | grep Darwin >/dev/null; then
 	# Claims to be macos?
 	if $AC_CC $AC_PICFLAG  -dynamiclib -o ngc$$.so ngc$$.c; then
@@ -1459,6 +1462,7 @@ AC_CC_SHLIBS () {
         LOG "(yes; -shared)"
 	__rc=0
     else
+	_MK_LIBRARIAN=Y
         LOG "(no)"
 	__rc=1
     fi
