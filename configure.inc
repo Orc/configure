@@ -1043,8 +1043,10 @@ AC_OUTPUT () {
     
     if test "$__MACOS_DSYM"; then
 	# deal with extra OSX droppings, if they exist
-	AC_SUB 'GENERATED_FILES' "-r *.dSYM $*"
+	AC_SUB 'DISTCLEAN' 'rm -fr'
+	AC_SUB 'GENERATED_FILES' "*.dSYM $*"
     else
+	AC_SUB 'DISTCLEAN' 'rm -f'
 	AC_SUB 'GENERATED_FILES' "$*"
     fi
     
