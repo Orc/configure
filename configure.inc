@@ -626,6 +626,7 @@ AC_LIBRARY() {
 	LIBS="$__libs $x"
 	if AC_QUIET AC_CHECK_FUNCS $SRC $__aclhdrs; then
 	    AC_LIBS="$AC_LIBS $x"
+	    AC_DEFINE HAVE_LIB`echo $x | sed -e 's/-l//' | $AC_UPPERCASE`
 	    LOG " (in $x)"
 	    return 0
 	fi
@@ -1426,7 +1427,7 @@ install)$PROG_INSTALL -c \$FULLNAME "\$1"
 	$PROG_LN_S -f \$FULLNAME \$1/\$LIBNAME.\$MAJOR
 	$PROG_LN_S -f \$FULLNAME \$1/\$LIBNAME
 EOF
-    test "$LDCONFIG" && echo '	'$LDCONFIG '"\$1"' >> librarian.sh
+    test "$LDCONFIG" && echo '	'$LDCONFIG '"$1"' >> librarian.sh
     cat >> librarian.sh << EOF
 	;;
 esac
