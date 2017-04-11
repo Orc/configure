@@ -616,7 +616,6 @@ AC_LIBRARY() {
     # current libraries
     LOGN "Looking for the ${SRC} function"
     if AC_QUIET AC_CHECK_FUNCS $SRC $__aclhdrs; then
-	AC_DEFINE HAVE_LIB`echo $1 | sed -e 's/-l//' | $AC_UPPERCASE`
 	LOG "(found)"
 	return 0
     fi
@@ -627,7 +626,7 @@ AC_LIBRARY() {
 	LIBS="$__libs $x"
 	if AC_QUIET AC_CHECK_FUNCS $SRC $__aclhdrs; then
 	    AC_LIBS="$AC_LIBS $x"
-	    AC_DEFINE HAVE_LIB`echo $1 | sed -e 's/-l//' | $AC_UPPERCASE`
+	    AC_DEFINE HAVE_LIB`echo $x | sed -e 's/-l//' | $AC_UPPERCASE`
 	    LOG " (in $x)"
 	    return 0
 	fi
@@ -1112,8 +1111,8 @@ install)$PROG_INSTALL -m 644 \${LIBRARY}.a \$1
 	;;
 esac
 EOF
+	chmod +x librarian.sh
     fi
-    chmod +x librarian.sh
 
     AC_SUB 'CONFIGURE_FILES' "$__config_files"
 
