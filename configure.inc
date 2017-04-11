@@ -139,14 +139,14 @@ AC_CONTINUE () {
 __MAKEDOTO() {
     AC_PROG_CC
 
-    if $AC_CC -c -o ngc$$.o "$@" $AC_LIBS 2>ngc$$.err; then
+    if $AC_CC -c -o ngc$$.o "$@" $LIBS 2>ngc$$.err; then
 	__remove ngc$$.o ngc$$.err
 	TLOG " (found)"
 	return 0
     fi
     __remove ngc$$.o
     TLOG " (not found)"
-    echo "test failed:  command was $AC_CC -c -o ngc$$.o" "$@" $AC_LIBS
+    echo "test failed:  command was $AC_CC -c -o ngc$$.o" "$@" $LIBS
     echo "output:"
     cat ngc$$.err
     __remove ngc$$.err
@@ -616,7 +616,6 @@ AC_LIBRARY() {
     for x in "$@"; do
 	LIBS="$__libs $x"
 	if AC_QUIET AC_CHECK_FUNCS $SRC; then
-	    AC_LIBS="$AC_LIBS $x"
 	    AC_DEFINE HAVE_LIB`echo $1 | sed -e 's/-l//' | $AC_UPPERCASE`
 	    LOG " (in $x)"
 	    return 0
@@ -1032,7 +1031,7 @@ EOF
 AC_OUTPUT () {
     
     cd "$__cwd"
-    AC_SUB 'LIBS'    "$AC_LIBS"
+    AC_SUB 'LIBS'    "$LIBS"
     
     if test "$__MACOS_DSYM"; then
 	# deal with extra OSX droppings, if they exist
@@ -1221,13 +1220,13 @@ EOF
 	TLOG " (found)"
     elif $AC_CC -o ngc$$ ngc$$.c -lresolv; then
 	TLOG " (yes, with -lresolv)"
-	AC_LIBS="$AC_LIBS -lresolv"
+	LIBS="$LIBS -lresolv"
     elif $AC_CC -DBIND_8_COMPAT -o ngc$$ ngc$$.c; then
 	TLOG " (yes, with BIND_8_COMPAT)"
 	AC_DEFINE BIND_8_COMPAT 1
     elif $AC_CC -DBIND_8_COMPAT -o ngc$$ ngc$$.c -lresolv; then
 	TLOG " (yes, with BIND_8_COMPAT & -lresolv)"
-	AC_LIBS="$AC_LIBS -lresolv"
+	LIBS="$LIBS -lresolv"
 	AC_DEFINE BIND_8_COMPAT 1
     else
 	TLOG " (not found)"
