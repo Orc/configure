@@ -599,34 +599,25 @@ EOF
 # usage: AC_LIBRARY function library [alternate ...]
 #
 AC_LIBRARY() {
-    SRC=$1
+    local SRC=$1
     shift
-
-    __acllibs=
-    __aclhdrs=
-
-    for x in "$@"; do
-	case X"$x" in
-	X-l*) __acllibs="$__acllibs $x" ;;
-	*)    __aclhdrs="$__aclhdrs $x" ;;
-	esac
-    done
 
     # first see if the function can be found in any of the
     # current libraries
     LOGN "Looking for the ${SRC} function"
-    if AC_QUIET AC_CHECK_FUNCS $SRC $__aclhdrs; then
+    if AC_QUIET AC_CHECK_FUNCS $SRC; then
+	AC_DEFINE HAVE_LIB`echo $1 | sed -e 's/-l//' | $AC_UPPERCASE`
 	LOG "(found)"
 	return 0
     fi
 
     # then search through the supplied list of libraries
-    __libs="$LIBS"
-    for x in $__acllibs; do
+    local __libs="$LIBS"
+    for x in "$@"; do
 	LIBS="$__libs $x"
-	if AC_QUIET AC_CHECK_FUNCS $SRC $__aclhdrs; then
+	if AC_QUIET AC_CHECK_FUNCS $SRC; then
 	    AC_LIBS="$AC_LIBS $x"
-	    AC_DEFINE HAVE_LIB`echo $x | sed -e 's/-l//' | $AC_UPPERCASE`
+	    AC_DEFINE HAVE_LIB`echo $1 | sed -e 's/-l//' | $AC_UPPERCASE`
 	    LOG " (in $x)"
 	    return 0
 	fi
