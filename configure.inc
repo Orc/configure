@@ -996,12 +996,10 @@ EOF
 	if [ $# -gt 0 ]; then
 	    while [ "$1" ]; do
 		case "$1" in
-		sub)TLOG "-sub"
-		    if ./ngc$$ sub >> "$__cwd"/config.sub; then
+		sub)if ./ngc$$ sub >> "$__cwd"/config.sub; then
 			rc=0
 		    fi;;
-		*)  TLOG "-$1"
-		    if ./ngc$$ >> "$__cwd"/config.h; then
+		*)  if ./ngc$$ >> "$__cwd"/config.h; then
 			rc=0
 		    fi ;;
 		esac
