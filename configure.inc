@@ -1384,9 +1384,10 @@ __AC_ELF_LIBRARIAN() {
 
     if [ "$LDCONFIG" ]; then
 	case `uname -s 2>/dev/null | $AC_UPPERCASE` in
-	*BSD)	# *bsd ldconfig doesn't automerge; it
-		# needs to explicitly be told to do so
-		# or it will blow away your hints file.
+	*BSD)	# *BSD ldconfig, when passed a directory, blows away the
+		# ld.so hints file and replaces it with one that's just
+		# the files in the library.   It needs a `-m` flag to
+		# tell it to merge the new entries with the old
 		LDCONFIG="$LDCONFIG -m" ;;
 	esac
     fi
@@ -1536,7 +1537,7 @@ AC_PROG_INSTALL () {
     fi
 
     __config_files="$__config_files config.md"
-    AC_SUB 'INSTALL_DIR' "./config.md"
+    AC_SUB 'INSTALL_DIR' "$__cwd/config.md"
     echo "#! /bin/sh"                                   > ""$__cwd"/config.md"
     echo "# script generated" `date` "by configure.sh" >> ""$__cwd"/config.md"
     echo                                               >> ""$__cwd"/config.md"
