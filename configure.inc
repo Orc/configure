@@ -940,13 +940,13 @@ AC_SCALAR_TYPES () {
     rc=1
     LOGN "defining WORD & DWORD scalar types"
     
-    if AC_QUIET AC_CHECK_HEADERS WinDef.h; then
-	# windows machine; BYTE, WORD, DWORD already
-	# defined
-	echo "#include <WinDef.h>" >> "$__cwd"/config.h
-	TLOG " (defined in WinDef.h)"
-	return 0
-    fi
+#    if AC_QUIET AC_CHECK_HEADERS WinDef.h; then
+#	# windows machine; BYTE, WORD, DWORD already
+#	# defined
+#	echo "#include <WinDef.h>" >> "$__cwd"/config.h
+#	TLOG " (defined in WinDef.h)"
+#	return 0
+#    fi
 	
     cat > ngc$$.c << EOF
 #include <stdio.h>
@@ -1383,6 +1383,15 @@ __AC_ELF_LIBRARIAN() {
 	USE_SONAME=T
     fi
     LDCONFIG=`AC_PATH=/sbin:/usr/sbin:/usr/local/sbin acLookFor ldconfig`
+    if [ "$LDCONFIG" ]; then
+	case `uname -s 2>/dev/null | $AC_UPPERCASE` in
+	*BSD)	# *BSD ldconfig, when passed a directory, blows away the
+		# ld.so hints file and replaces it with one that's just
+		# the files in the library.   It needs a `-m` flag to
+		# tell it to merge the new entries with the old
+		LDCONFIG="$LDCONFIG -m" ;;
+	esac
+    fi
     __config_files="$__config_files librarian.sh"
     cat > librarian.sh << EOF
 #! /bin/sh
