@@ -940,13 +940,13 @@ AC_SCALAR_TYPES () {
     rc=1
     LOGN "defining WORD & DWORD scalar types"
     
-    if AC_QUIET AC_CHECK_HEADERS WinDef.h; then
-	# windows machine; BYTE, WORD, DWORD already
-	# defined
-	echo "#include <WinDef.h>" >> "$__cwd"/config.h
-	TLOG " (defined in WinDef.h)"
-	return 0
-    fi
+#    if AC_QUIET AC_CHECK_HEADERS WinDef.h; then
+#	# windows machine; BYTE, WORD, DWORD already
+#	# defined
+#	echo "#include <WinDef.h>" >> "$__cwd"/config.h
+#	TLOG " (defined in WinDef.h)"
+#	return 0
+#    fi
 	
     cat > ngc$$.c << EOF
 #include <stdio.h>
@@ -1381,6 +1381,16 @@ __AC_ELF_LIBRARIAN() {
 	USE_SONAME=T
     fi
     LDCONFIG=`AC_PATH=/sbin:/usr/sbin:/usr/local/sbin acLookFor ldconfig`
+
+    if [ "$LDCONFIG" ]; then
+	case `uname -s 2>/dev/null` in
+	*[Bb][Ss][Dd])	# *bsd ldconfig doesn't automerge; it
+			# needs to explicitly be told to do so
+			# or it will blow away your hints file.
+			$LDCONFIG="$LDCONFIG -m" ;;
+	esac
+    fi
+    
     __config_files="$__config_files librarian.sh"
     cat > librarian.sh << EOF
 #! /bin/sh
