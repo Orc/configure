@@ -308,7 +308,6 @@ EOF
 
     if __MAKEDOTO ngc$$.c; then
 	AC_DEFINE HAVE_`echo ${type} | $AC_UPPERCASE`
-	AC_DEFINE HAVE_`echo ${type} | $AC_UPPERCASE`
 	rc=0
     else
 	rc=1
