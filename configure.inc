@@ -42,7 +42,16 @@ ac_standard="--src=DIR		where the source lives (.)
 --libexecdir=DIR	where to put private executables
 --mandir=DIR		where to put manpages"
 
-__fail=exit
+
+# remove files created by configure on abend
+#
+AC_EXIT() {
+    rm -f $__config_files
+    exit ${1:-1}
+}
+
+__fail=AC_EXIT
+
 
 if dirname B/A 2>/dev/null >/dev/null; then
 __ac_dirname() {
@@ -515,7 +524,7 @@ MF_PATH_INCLUDE () {
 # and fd 5 points to what used to be fd 1
 #
 AC_INIT () {
-    __config_files="config.cmd config.sub config.h config.mak config.log"
+    __config_files="config.cmd config.sub config.h config.mak"
     rm -f $__config_files
     __cwd=`pwd`
     exec 5>&1 1>"$__cwd"/config.log 2>&1
@@ -1102,7 +1111,7 @@ EOF
 	chmod +x librarian.sh
     fi
 
-    AC_SUB 'CONFIGURE_FILES' "$__config_files"
+    AC_SUB 'CONFIGURE_FILES' "$__config_files config.log"
 
     if [ -r config.sub ]; then
 	test "$AC_SED_PROG" || AC_PROG_SED
