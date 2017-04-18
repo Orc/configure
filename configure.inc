@@ -1143,6 +1143,7 @@ EOF
     else
 	echo 
     fi
+    rm -f config.sed
 }
 
 #
