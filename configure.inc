@@ -1505,19 +1505,19 @@ AC_PROG_INSTALL () {
 	$DEST /tmp/a$$ /tmp/b$$
 
 	if test -r /tmp/a$$; then
-	    LOG " ($DEST)"
+	    LOGN " ($DEST)"
 	else
 	    IS_BSD=1
-	    LOG " ($DEST) bsd install"
+	    LOGN " ($DEST) bsd install"
 	fi
 	rm -f /tmp/a$$ /tmp/b$$
     else
 	DEST=`acLookFor ginstall`
 	if [ "$DEST" ]; then
-	    LOG " ($DEST)"
+	    LOGN " ($DEST)"
 	else
 	    DEST="false"
-	    LOG " (not found)"
+	    AC_FAIL " (not found)"
 	fi
     fi
 
@@ -1527,18 +1527,21 @@ AC_PROG_INSTALL () {
 	PROG_INSTALL="$DEST"
     fi
 
-    # see if we can strip binaries
-    echo 'main() { puts("hello, sailor!"); }' > ngc$$.c
-    if $AC_CC -o ngc$$ ngc$$.c; then
-	if $PROG_INSTALL -s -m 444 ngc$$ inst$$; then
-	    _strip="-s"
-	else
-	    unset _strip
-	    LOG "(install -s does not appear to work?)"
+    if [ "$DEST" != "false" ]; then
+	# see if we can strip binaries
+	echo 'main() { puts("hello, sailor!"); }' > ngc$$.c
+	if $AC_CC -o ngc$$ ngc$$.c; then
+	    if $PROG_INSTALL -s -m 444 ngc$$ inst$$; then
+		_strip="-s"
+	    else
+		unset _strip
+		LOGN " (cannot strip binaries)"
+	    fi
+	    rm -f inst$$
 	fi
-	rm -f inst$$
+	rm -f ngc$$ ngc$$.c
+	LOG ""
     fi
-    rm -f ngc$$ ngc$$.c
 
     AC_SUB 'INSTALL' "$PROG_INSTALL"
     AC_SUB 'INSTALL_PROGRAM' "$PROG_INSTALL $_strip -m 755"
